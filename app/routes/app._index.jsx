@@ -9,9 +9,12 @@ import {
   Text,
   Button,
   Badge,
-  DataTable
+  DataTable,
+  Box,
+  CalloutCard
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { useNavigate } from "@remix-run/react";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -20,6 +23,7 @@ export const loader = async ({ request }) => {
 
 export default function Index() {
   const [syncEnabled, setSyncEnabled] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <Page>
@@ -27,48 +31,86 @@ export default function Index() {
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <div>
-                    <Text variant="headingMd">Quotiza Sync</Text>
-                    <Text variant="bodyMd" color="subdued">
-                      Enable or disable synchronization with Quotiza
-                    </Text>
-                  </div>
-                  <Button 
-                    onClick={() => setSyncEnabled(!syncEnabled)}
-                    primary={syncEnabled}
-                  >
-                    {syncEnabled ? 'Disable Sync' : 'Enable Sync'}
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            </Card>
+            <BlockStack gap="500">
+              {/* Welcome Callout */}
+              <CalloutCard
+                title="Welcome to Quotiza Connect"
+                illustration="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                primaryAction={{
+                  content: 'Go to Settings',
+                  onAction: () => navigate("/app/settings"),
+                }}
+              >
+                <BlockStack gap="400">
+                  <Text variant="bodyMd" as="p">
+                    This app helps you synchronize your Shopify products with Quotiza.
+                  </Text>
+                  
+                  <BlockStack gap="200">
+                    <Text variant="bodyMd" as="p">Follow these steps to get started:</Text>
+                    <Text variant="bodyMd" as="p">1. Go to Settings in the navigation menu</Text>
+                    <Text variant="bodyMd" as="p">2. Enter your Quotiza API Key and Account ID</Text>
+                    <Text variant="bodyMd" as="p">3. Enable synchronization and choose your preferred frequency</Text>
+                  </BlockStack>
+                </BlockStack>
+              </CalloutCard>
 
-            <Card>
-              <BlockStack gap="400">
-                <Text variant="headingMd">Import History</Text>
-                <DataTable
-                  columnContentTypes={["text", "text", "text", "text"]}
-                  headings={["Status", "Date", "Time", "Action"]}
-                  rows={[
-                    [
-                      <Badge status="success">Success</Badge>,
-                      "2023-06-01",
-                      "14:30:00",
-                      "-"
-                    ],
-                    [
-                      <Badge status="critical">Error</Badge>,
-                      "2023-05-31",
-                      "09:15:00",
-                      <Button size="slim">View Errors</Button>
-                    ]
-                  ]}
-                />
-              </BlockStack>
-            </Card>
+              {/* Sync Toggle Card */}
+              <Card>
+                <Box padding="400">
+                  <InlineStack align="space-between">
+                    <BlockStack gap="200">
+                      <InlineStack gap="200" align="start">
+                        <Text variant="headingMd" as="h2">Quotiza Sync</Text>
+                        <Badge
+                          tone={syncEnabled ? "info" : undefined}
+                          progress="complete"
+                          size="small"
+                        >
+                          {syncEnabled ? "ON" : "OFF"}
+                        </Badge>
+                      </InlineStack>
+                      <Text variant="bodyMd" color="subdued">
+                        Enable or disable synchronization with Quotiza
+                      </Text>
+                    </BlockStack>
+                    <Button 
+                      onClick={() => setSyncEnabled(!syncEnabled)}
+                      primary={syncEnabled}
+                    >
+                      {syncEnabled ? 'Disable Sync' : 'Enable Sync'}
+                    </Button>
+                  </InlineStack>
+                </Box>
+              </Card>
+
+              {/* Import History Card */}
+              <Card>
+                <Box padding="400">
+                  <BlockStack gap="400">
+                    <Text variant="headingMd" as="h2">Import History</Text>
+                    <DataTable
+                      columnContentTypes={["text", "text", "text", "text"]}
+                      headings={["Status", "Date", "Time", "Action"]}
+                      rows={[
+                        [
+                          <Badge tone="success">Success</Badge>,
+                          "2023-06-01",
+                          "14:30:00",
+                          "-"
+                        ],
+                        [
+                          <Badge tone="critical">Error</Badge>,
+                          "2023-05-31",
+                          "09:15:00",
+                          <Button variant="plain" size="slim">View Errors</Button>
+                        ]
+                      ]}
+                    />
+                  </BlockStack>
+                </Box>
+              </Card>
+            </BlockStack>
           </Layout.Section>
         </Layout>
       </BlockStack>
