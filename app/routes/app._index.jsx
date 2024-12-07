@@ -11,10 +11,15 @@ import {
   Badge,
   DataTable,
   Box,
-  CalloutCard
+  CalloutCard,
+  Modal,
+  List,
+  Icon
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useNavigate } from "@remix-run/react";
+import { RefreshIcon } from "@shopify/polaris-icons";
+import { useConfig } from "../contexts/ConfigContext";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -22,12 +27,48 @@ export const loader = async ({ request }) => {
 };
 
 export default function Index() {
-  const [syncEnabled, setSyncEnabled] = useState(false);
+  const { importFrequency } = useConfig();
+  const isAutoSyncEnabled = ["hourly", "daily"].includes(importFrequency);
+
+  const handleManualSync = () => {
+    console.log("Ejecutando sincronización manual");
+  };
+
+  const [errorModalActive, setErrorModalActive] = useState(false);
+  const [selectedError, setSelectedError] = useState(null);
   const navigate = useNavigate();
+
+  // Simulación de datos de error
+  const errorDetails = {
+    date: "2023-05-31",
+    time: "09:15:00",
+    errors: [
+      "Product 'SKU123' failed to sync: Invalid price format",
+      "Product 'SKU456' failed to sync: Missing required field 'brand'",
+      "Connection timeout after 30 seconds"
+    ]
+  };
+
+  const handleViewErrors = () => {
+    setSelectedError(errorDetails);
+    setErrorModalActive(true);
+  };
+
+  // Función para obtener el texto del badge
+  const getBadgeText = () => {
+    switch (importFrequency) {
+      case "hourly":
+        return "Hourly";
+      case "daily":
+        return "Daily";
+      default:
+        return "OFF";
+    }
+  };
 
   return (
     <Page>
-      <TitleBar title="Quotiza Connect" />
+      <TitleBar title="Quotiza Connect" displayTitle={false} />
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -63,11 +104,11 @@ export default function Index() {
                       <InlineStack gap="200" align="start">
                         <Text variant="headingMd" as="h2">Quotiza Sync</Text>
                         <Badge
-                          tone={syncEnabled ? "info" : undefined}
+                          tone={isAutoSyncEnabled ? "info" : undefined}
                           progress="complete"
                           size="small"
                         >
-                          {syncEnabled ? "ON" : "OFF"}
+                          {getBadgeText()}
                         </Badge>
                       </InlineStack>
                       <Text variant="bodyMd" color="subdued">
@@ -75,10 +116,10 @@ export default function Index() {
                       </Text>
                     </BlockStack>
                     <Button 
-                      onClick={() => setSyncEnabled(!syncEnabled)}
-                      primary={syncEnabled}
+                      onClick={handleManualSync}
+                      icon={RefreshIcon}
                     >
-                      {syncEnabled ? 'Disable Sync' : 'Enable Sync'}
+                      Sync
                     </Button>
                   </InlineStack>
                 </Box>
@@ -103,7 +144,9 @@ export default function Index() {
                           <Badge tone="critical">Error</Badge>,
                           "2023-05-31",
                           "09:15:00",
-                          <Button variant="plain" size="slim">View Errors</Button>
+                          <Button variant="plain" size="slim" onClick={handleViewErrors}>
+                            View Errors
+                          </Button>
                         ]
                       ]}
                     />
@@ -114,6 +157,29 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+
+      <Modal
+        open={errorModalActive}
+        onClose={() => setErrorModalActive(false)}
+        title="Sync Errors"
+        primaryAction={{
+          content: "Close",
+          onAction: () => setErrorModalActive(false),
+        }}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p">
+              The following errors occurred during synchronization on {selectedError?.date} at {selectedError?.time}:
+            </Text>
+            <List type="bullet">
+              {selectedError?.errors.map((error, index) => (
+                <List.Item key={index}>{error}</List.Item>
+              ))}
+            </List>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }

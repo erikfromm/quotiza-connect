@@ -15,6 +15,8 @@ import {
   Banner
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { useNavigate } from "@remix-run/react";
+import { useConfig } from "../contexts/ConfigContext";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -22,9 +24,10 @@ export const loader = async ({ request }) => {
 };
 
 export default function Settings() {
+  const navigate = useNavigate();
   const [apiKey, setApiKey] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [frequency, setFrequency] = useState("daily");
+  const { importFrequency, setImportFrequency } = useConfig();
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = () => {
@@ -36,8 +39,13 @@ export default function Settings() {
   };
 
   return (
-    <Page>
-      <TitleBar title="Settings" />
+    <Page
+      backAction={{
+        content: "Products",
+        onAction: () => navigate("/app"),
+      }}
+    >
+      <TitleBar title="Settings" displayTitle={false} />
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -74,8 +82,8 @@ export default function Settings() {
                         {label: "Once a day", value: "daily"},
                         {label: "Manual only", value: "manual"}
                       ]}
-                      value={frequency}
-                      onChange={setFrequency}
+                      value={importFrequency}
+                      onChange={setImportFrequency}
                       helpText="How often should products be synchronized"
                     />
                     <Box paddingBlockStart="400">
