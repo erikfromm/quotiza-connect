@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "390070c5a9db5554c631741fecb6c20f"
-application_url = "https://sport-strike-saint-hindu.trycloudflare.com"
+application_url = "https://destiny-workforce-main-programme.trycloudflare.com"
 embedded = true
 name = "Quotiza Connect"
 handle = "quotiza-connect"
@@ -15,9 +15,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://sport-strike-saint-hindu.trycloudflare.com/auth/callback",
-  "https://sport-strike-saint-hindu.trycloudflare.com/auth/shopify/callback",
-  "https://sport-strike-saint-hindu.trycloudflare.com/api/auth/callback"
+  "https://destiny-workforce-main-programme.trycloudflare.com/auth/callback",
+  "https://destiny-workforce-main-programme.trycloudflare.com/auth/shopify/callback",
+  "https://destiny-workforce-main-programme.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
