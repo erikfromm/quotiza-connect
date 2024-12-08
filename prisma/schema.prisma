@@ -30,3 +30,19 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model SyncHistory {
+  id        String   @id @default(cuid())
+  status    String
+  error     String?
+  date      DateTime @default(now())
+}
+
+model Configuration {
+  id             String   @id @default(cuid())
+  apiKey         String
+  accountId      String
+  importFrequency String  @default("manual")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

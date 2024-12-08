@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authenticate } from "../shopify.server";
 import {
   Page,
@@ -15,10 +15,11 @@ import {
   Banner
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { useNavigate, useLoaderData } from "@remix-run/react";
+import { useNavigate, useLoaderData, useActionData, useNavigation, Form } from "@remix-run/react";
 import { json, redirect } from "@remix-run/node";
 import { useConfig } from "../contexts/ConfigContext";
 import { useShop } from "../contexts/ShopContext";
+import prisma from "../db.server";
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
@@ -34,29 +35,63 @@ export const loader = async ({ request }) => {
     throw redirect("/auth/login");
   }
 
+  const config = await prisma.configuration.findUnique({
+    where: { id: "current" }
+  });
+
   return json({ 
     shop: session.shop,
     host: new URL(request.url).searchParams.get("host"),
-    embedded: new URL(request.url).searchParams.get("embedded") === "1"
+    embedded: new URL(request.url).searchParams.get("embedded") === "1",
+    config
   });
+};
+
+export const action = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  const formData = await request.formData();
+
+  const config = {
+    apiKey: formData.get("apiKey"),
+    accountId: formData.get("accountId"),
+    importFrequency: formData.get("importFrequency")
+  };
+
+  try {
+    await prisma.configuration.upsert({
+      where: { id: "current" },
+      update: config,
+      create: { id: "current", ...config }
+    });
+
+    return json({ status: "success" });
+  } catch (error) {
+    console.error("Error saving configuration:", error);
+    return json({ status: "error", message: error.message }, { status: 500 });
+  }
 };
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { shop } = useLoaderData();
-  console.log("Settings render:", { shop });
-  const [apiKey, setApiKey] = useState("");
-  const [accountId, setAccountId] = useState("");
+  const { shop, config } = useLoaderData();
+  console.log("Settings render:", { shop, config });
+  const [apiKey, setApiKey] = useState(config?.apiKey || "");
+  const [accountId, setAccountId] = useState(config?.accountId || "");
   const { importFrequency, setImportFrequency } = useConfig();
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    setIsSaving(true);
-    // Simulamos guardado
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1000);
-  };
+  useEffect(() => {
+    if (config?.importFrequency) {
+      setImportFrequency(config.importFrequency);
+    }
+  }, [config, setImportFrequency]);
+
+  const actionData = useActionData();
+  const navigation = useNavigation();
+  const isSaving = navigation.state === "submitting";
+
+  const showBanner = actionData?.status === "success" || actionData?.status === "error";
+  const bannerTitle = actionData?.status === "success" ? "Settings saved" : "Error saving settings";
+  const bannerStatus = actionData?.status === "success" ? "success" : "critical";
 
   return (
     <Page
@@ -67,6 +102,15 @@ export default function Settings() {
     >
       <TitleBar title="Settings" displayTitle={false} />
       <BlockStack gap="500">
+        {showBanner && (
+          <Banner
+            title={bannerTitle}
+            status={bannerStatus}
+            onDismiss={() => {}}
+          >
+            {actionData?.message || "Your settings have been saved successfully."}
+          </Banner>
+        )}
         <Layout>
           <Layout.Section>
             <Card>
@@ -80,43 +124,48 @@ export default function Settings() {
                   </BlockStack>
                 </Box>
                 <Box padding="400">
-                  <FormLayout>
-                    <TextField
-                      label="API Key"
-                      value={apiKey}
-                      onChange={setApiKey}
-                      autoComplete="off"
-                      helpText="Find this in your Quotiza dashboard settings"
-                    />
-                    <TextField
-                      label="Account ID"
-                      value={accountId}
-                      onChange={setAccountId}
-                      autoComplete="off"
-                      helpText="Your Quotiza account identifier"
-                    />
-                    <Select
-                      label="Import Frequency"
-                      options={[
-                        {label: "Every hour", value: "hourly"},
-                        {label: "Once a day", value: "daily"},
-                        {label: "Manual only", value: "manual"}
-                      ]}
-                      value={importFrequency}
-                      onChange={setImportFrequency}
-                      helpText="How often should products be synchronized"
-                    />
-                    <Box paddingBlockStart="400">
-                      <Button 
-                        primary 
-                        onClick={handleSave}
-                        loading={isSaving}
-                        fullWidth
-                      >
-                        Save Settings
-                      </Button>
-                    </Box>
-                  </FormLayout>
+                  <Form method="post">
+                    <FormLayout>
+                      <TextField
+                        label="API Key"
+                        name="apiKey"
+                        value={apiKey}
+                        onChange={setApiKey}
+                        autoComplete="off"
+                        helpText="Find this in your Quotiza dashboard settings"
+                      />
+                      <TextField
+                        label="Account ID"
+                        name="accountId"
+                        value={accountId}
+                        onChange={setAccountId}
+                        autoComplete="off"
+                        helpText="Your Quotiza account identifier"
+                      />
+                      <Select
+                        label="Import Frequency"
+                        name="importFrequency"
+                        options={[
+                          {label: "Every hour", value: "hourly"},
+                          {label: "Once a day", value: "daily"},
+                          {label: "Manual only", value: "manual"}
+                        ]}
+                        value={importFrequency}
+                        onChange={setImportFrequency}
+                        helpText="How often should products be synchronized"
+                      />
+                      <Box paddingBlockStart="400">
+                        <Button 
+                          primary 
+                          submit
+                          loading={isSaving}
+                          fullWidth
+                        >
+                          Save Settings
+                        </Button>
+                      </Box>
+                    </FormLayout>
+                  </Form>
                 </Box>
               </BlockStack>
             </Card>
@@ -129,8 +178,14 @@ export default function Settings() {
                   <Box padding="400">
                     <BlockStack gap="200">
                       <Text variant="headingMd" as="h2">Connection Status</Text>
-                      <Banner status="success" title="Connected to Quotiza">
-                        Your connection is active and working properly
+                      <Banner 
+                        status={config?.apiKey ? "success" : "warning"}
+                        title={config?.apiKey ? "Connected to Quotiza" : "Not Configured"}
+                      >
+                        {config?.apiKey 
+                          ? "Your connection is active and working properly"
+                          : "Please configure your API Key and Account ID to connect with Quotiza"
+                        }
                       </Banner>
                     </BlockStack>
                   </Box>
