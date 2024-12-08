@@ -1,6 +1,11 @@
 export async function sendToQuotizaAPI(products, config) {
   const { apiKey, accountId } = config;
   const endpoint = `https://app.quotiza.com/api/v1/products/import`;
+  console.log('Quotiza API Request:', {
+    endpoint,
+    productsCount: products.length,
+    firstProduct: products[0]
+  });
 
   try {
     const response = await fetch(endpoint, {
@@ -11,25 +16,23 @@ export async function sendToQuotizaAPI(products, config) {
       },
       body: JSON.stringify({ 
         account_id: accountId,
-        products: products.map(p => ({
-          sku: p.sku,
-          name: p.name,
-          description: p.description,
-          cost: p.base_price,
-          brand: p.brand,
-          category: p.category,
-          active: p.active,
-          image_url: p.image_url
-        }))
+        products: products
       })
     });
 
+    const responseData = await response.json();
+    console.log('Quotiza API Response:', {
+      status: response.status,
+      ok: response.ok,
+      data: responseData
+    });
+
     if (!response.ok) {
-      const error = await response.json();
+      const error = responseData;
       throw new Error(error.error?.message || 'Error sending products to Quotiza');
     }
 
-    return await response.json();
+    return responseData;
   } catch (error) {
     console.error('Error in Quotiza API:', error);
     throw error;
