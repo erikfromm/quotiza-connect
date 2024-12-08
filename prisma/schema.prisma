@@ -32,10 +32,12 @@ model Session {
 }
 
 model SyncHistory {
-  id        String   @id @default(cuid())
-  status    String
-  error     String?
-  date      DateTime @default(now())
+  id            String   @id @default(cuid())
+  status        String
+  error         String?
+  date          DateTime @default(now())
+  products_count Int?
+  job_id        String?
 }
 
 model Configuration {
