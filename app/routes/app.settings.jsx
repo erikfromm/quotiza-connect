@@ -15,16 +15,36 @@ import {
   Banner
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useLoaderData } from "@remix-run/react";
+import { json, redirect } from "@remix-run/node";
 import { useConfig } from "../contexts/ConfigContext";
+import { useShop } from "../contexts/ShopContext";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { admin, session } = await authenticate.admin(request);
+  console.log("Session in Settings loader:", {
+    shop: session?.shop,
+    url: request.url,
+    headers: Object.fromEntries(request.headers.entries()),
+    searchParams: new URL(request.url).searchParams.toString()
+  });
+
+  if (!session?.shop) {
+    console.log("No shop found in session, redirecting to login");
+    throw redirect("/auth/login");
+  }
+
+  return json({ 
+    shop: session.shop,
+    host: new URL(request.url).searchParams.get("host"),
+    embedded: new URL(request.url).searchParams.get("embedded") === "1"
+  });
 };
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { shop } = useLoaderData();
+  console.log("Settings render:", { shop });
   const [apiKey, setApiKey] = useState("");
   const [accountId, setAccountId] = useState("");
   const { importFrequency, setImportFrequency } = useConfig();
@@ -42,7 +62,7 @@ export default function Settings() {
     <Page
       backAction={{
         content: "Products",
-        onAction: () => navigate("/app"),
+        onAction: () => navigate("..", { relative: "path" }),
       }}
     >
       <TitleBar title="Settings" displayTitle={false} />

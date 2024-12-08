@@ -1,12 +1,27 @@
 import { createContext, useContext, useState } from "react";
 
-const ConfigContext = createContext(null);
+const ConfigContext = createContext({
+  importFrequency: "manual",
+  setImportFrequency: () => {},
+  shop: null,
+  setShop: () => {}
+});
 
-export function ConfigProvider({ children }) {
+export function ConfigProvider({ children, initialShop }) {
   const [importFrequency, setImportFrequency] = useState("manual");
+  const [shop, setShop] = useState(initialShop);
+
+  console.log("ConfigProvider:", { shop, importFrequency });
+
+  const value = {
+    importFrequency,
+    setImportFrequency,
+    shop,
+    setShop
+  };
 
   return (
-    <ConfigContext.Provider value={{ importFrequency, setImportFrequency }}>
+    <ConfigContext.Provider value={value}>
       {children}
     </ConfigContext.Provider>
   );

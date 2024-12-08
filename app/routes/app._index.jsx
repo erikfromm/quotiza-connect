@@ -17,17 +17,25 @@ import {
   Icon
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, redirect } from "@remix-run/react";
+import { json } from "@remix-run/node";
 import { RefreshIcon } from "@shopify/polaris-icons";
 import { useConfig } from "../contexts/ConfigContext";
+import { useShop } from "../contexts/ShopContext";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { admin, session } = await authenticate.admin(request);
+
+  if (!session?.shop) {
+    throw redirect("/auth/login");
+  }
+
+  return json({ shop: session.shop });
 };
 
 export default function Index() {
   const { importFrequency } = useConfig();
+  const shop = useShop();
   const isAutoSyncEnabled = ["hourly", "daily"].includes(importFrequency);
 
   const handleManualSync = () => {
