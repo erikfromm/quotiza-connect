@@ -48,15 +48,15 @@ export default function App() {
           <ui-nav-menu>
             <a href="/app">Home</a>
             <a href="/app/settings">Settings</a>
-            {config?.accountId && (
-              <a 
-                href={`https://app.quotiza.com/accounts/${config.accountId}`}
-                data-primary-link
-                target="_blank"
-              >
-                Open Quotiza
-              </a>
-            )}
+            <a 
+              href="https://app.quotiza.com/products"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open('https://app.quotiza.com/products', '_blank', 'noopener,noreferrer');
+              }}
+            >
+              Open Quotiza
+            </a>
           </ui-nav-menu>
           <Outlet />
         </ConfigProvider>
