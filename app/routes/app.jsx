@@ -56,6 +56,7 @@ export default function App() {
               }}
             >
               Open Quotiza
+              <span style={{ marginLeft: '4px', fontSize: '14px' }}>↗</span>
             </a>
           </ui-nav-menu>
           <Outlet />
