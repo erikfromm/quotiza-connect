@@ -1,12 +1,12 @@
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
-import { redirect } from "@remix-run/node";
+import { redirect, json } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 import { ConfigProvider } from "../contexts/ConfigContext";
 import { ShopProvider } from "../contexts/ShopContext";
+import prisma from "../db.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -19,16 +19,21 @@ export const loader = async ({ request }) => {
 
   const searchParams = new URL(request.url).searchParams;
 
-  return { 
+  const config = await prisma.configuration.findFirst({
+    where: { shop: session?.shop }
+  });
+
+  return json({ 
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shop: session.shop,
     host: searchParams.get("host"),
-    embedded: searchParams.get("embedded") === "1"
-  };
+    embedded: searchParams.get("embedded") === "1",
+    config
+  });
 };
 
 export default function App() {
-  const { apiKey, host, shop, embedded } = useLoaderData();
+  const { apiKey, host, shop, embedded, config } = useLoaderData();
 
   return (
     <AppProvider 
@@ -40,10 +45,19 @@ export default function App() {
     >
       <ShopProvider shop={shop}>
         <ConfigProvider initialShop={shop}>
-          <NavMenu>
-            <Link to={`/app?shop=${shop}`}>Home</Link>
-            <Link to={`/app/settings?shop=${shop}`}>Settings</Link>
-          </NavMenu>
+          <ui-nav-menu>
+            <a href="/app">Home</a>
+            <a href="/app/settings">Settings</a>
+            {config?.accountId && (
+              <a 
+                href={`https://app.quotiza.com/accounts/${config.accountId}`}
+                data-primary-link
+                target="_blank"
+              >
+                Open Quotiza
+              </a>
+            )}
+          </ui-nav-menu>
           <Outlet />
         </ConfigProvider>
       </ShopProvider>

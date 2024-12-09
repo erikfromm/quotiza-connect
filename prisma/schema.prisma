@@ -42,6 +42,7 @@ model SyncHistory {
 
 model Configuration {
   id             String   @id @default(cuid())
+  shop           String   @unique
   apiKey         String
   accountId      String
   importFrequency String  @default("manual")

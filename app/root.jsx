@@ -4,9 +4,29 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { ConfigProvider } from "./contexts/ConfigContext";
+import { authenticate } from "./shopify.server";
+import prisma from "./db.server";
+
+export async function loader({ request }) {
+  const { session } = await authenticate.admin(request);
+
+  const config = await prisma.configuration.findFirst({
+    where: { shop: session?.shop }
+  });
+
+  return json({ 
+    importFrequency: config?.importFrequency || "manual",
+    shop: session?.shop
+  });
+}
 
 export default function App() {
+  const { importFrequency, shop } = useLoaderData();
+
   return (
     <html>
       <head>
@@ -21,7 +41,12 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
+        <ConfigProvider 
+          initialShop={shop}
+          initialImportFrequency={importFrequency}
+        >
+          <Outlet />
+        </ConfigProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

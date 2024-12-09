@@ -14,16 +14,16 @@ import {
   CalloutCard,
   Modal,
   List,
+  Link,
   Icon
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { useNavigate, redirect, useActionData, useNavigation, Form, useSubmit, useLoaderData } from "@remix-run/react";
+import { useNavigate, redirect, useActionData, useNavigation, useSubmit, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import { RefreshIcon } from "@shopify/polaris-icons";
+import { RefreshIcon, ExternalIcon } from "@shopify/polaris-icons";
 import { useConfig } from "../contexts/ConfigContext";
 import { useShop } from "../contexts/ShopContext";
 import { syncProducts } from "../services/sync.server";
-import { checkImportStatus } from "../services/quotiza.server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -41,80 +41,91 @@ export const loader = async ({ request }) => {
     take: 10
   });
 
+  // Obtener la configuración actual
+  const config = await prisma.configuration.findFirst({
+    where: { shop: session.shop }
+  });
+
   return json({ 
     shop: session.shop,
-    syncHistory 
+    syncHistory,
+    importFrequency: config?.importFrequency || "manual",
+    config
   });
 };
 
 export const action = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const action = formData.get("action");
   
-  if (action === "check_status") {
-    const jobId = formData.get("jobId");
-    const config = await prisma.configuration.findUnique({
-      where: { id: "current" }
-    });
-
-    const status = await checkImportStatus(jobId, config);
-    return json(status);
-  }
-  
-  try {
-    const result = await syncProducts(session.shop, admin);
-    return json(result);
-  } catch (error) {
-    return json({ 
-      status: "error", 
-      message: error.message 
-    }, { status: 500 });
-  }
+  const result = await syncProducts(session.shop, admin);
+  return json(result);
 };
 
 export default function Index() {
-  const { importFrequency } = useConfig();
+  const { importFrequency, setImportFrequency } = useConfig();
   const shop = useShop();
-  const { syncHistory } = useLoaderData();
-  const isAutoSyncEnabled = ["hourly", "daily"].includes(importFrequency);
-  const actionData = useActionData();
+  const { syncHistory, importFrequency: initialImportFrequency, config } = useLoaderData();
   const navigation = useNavigation();
+  const isAutoSyncEnabled = ["hourly", "daily"].includes(importFrequency);
   const isSyncing = navigation.state === "submitting";
+  const isLoading = navigation.state === "loading";
   const submit = useSubmit();
 
   const [errorModalActive, setErrorModalActive] = useState(false);
   const [selectedError, setSelectedError] = useState(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const navigate = useNavigate();
+  const [lastSyncTime, setLastSyncTime] = useState(Date.now());
 
+  // Actualizar el estado del contexto con el valor de la base de datos
   useEffect(() => {
-    const inProgressRecord = syncHistory.find(record => record.job_id && record.status === "in_progress");
-    if (inProgressRecord) {
-      const checkStatus = async () => {
-        setCheckingStatus(true);
-        const formData = new FormData();
-        formData.append("action", "check_status");
-        formData.append("jobId", inProgressRecord.job_id);
-        await submit(formData, { method: "post" });
-        setCheckingStatus(false);
-      };
-      const interval = setInterval(checkStatus, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [syncHistory]);
+    setImportFrequency(initialImportFrequency);
+  }, [initialImportFrequency]);
 
-  // Función para obtener el texto del badge
   const getBadgeText = () => {
-    switch (importFrequency) {
-      case "hourly":
-        return "Hourly";
-      case "daily":
-        return "Daily";
+    switch (importFrequency || initialImportFrequency) {
+      case 'hourly':
+        return 'Hourly';
+      case 'daily':
+        return 'Daily';
       default:
-        return "OFF";
+        return 'OFF';
     }
   };
+
+  // Función para realizar la sincronización automática
+  const performAutoSync = async () => {
+    try {
+      await submit(null, { method: "post" });
+      setLastSyncTime(Date.now());
+    } catch (error) {
+      console.error('Error en sincronización automática:', error);
+    }
+  };
+
+  // Efecto para manejar la sincronización automática
+  useEffect(() => {
+    if (!isAutoSyncEnabled) return;
+
+    const checkAndSync = () => {
+      const now = Date.now();
+      const timeSinceLastSync = now - lastSyncTime;
+      
+      // Convertir la frecuencia a milisegundos
+      const syncInterval = importFrequency === 'hourly' 
+        ? 60 * 60 * 1000  // 1 hora
+        : 24 * 60 * 60 * 1000;  // 24 horas
+
+      if (timeSinceLastSync >= syncInterval) {
+        performAutoSync();
+      }
+    };
+
+    // Verificar cada 5 minutos
+    const intervalId = setInterval(checkAndSync, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [importFrequency, isAutoSyncEnabled, lastSyncTime]);
 
   return (
     <Page>
@@ -155,10 +166,10 @@ export default function Index() {
                         <Text variant="headingMd" as="h2">Quotiza Sync</Text>
                         <Badge
                           tone={isAutoSyncEnabled ? "info" : undefined}
-                          progress="complete"
                           size="small"
+                          progress={isLoading ? "partiallyComplete" : "complete"}
                         >
-                          {getBadgeText()}
+                          {isLoading ? "..." : getBadgeText()}
                         </Badge>
                       </InlineStack>
                       <Text variant="bodyMd" color="subdued">

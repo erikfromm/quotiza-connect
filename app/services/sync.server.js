@@ -4,13 +4,15 @@ import { sendToQuotizaAPI } from "./quotiza.server";
 export async function syncProducts(shop, admin) {
   try {
     // 1. Obtener configuración
-    const config = await prisma.configuration.findUnique({
-      where: { id: "current" }
+    const config = await prisma.configuration.findFirst({
+      where: { shop }
     });
 
     if (!config?.apiKey || !config?.accountId) {
       throw new Error("API Key and Account ID are required");
     }
+
+    const { apiKey, accountId } = config;
 
     // 2. Registrar inicio de sincronización
     const syncRecord = await prisma.syncHistory.create({
@@ -78,8 +80,8 @@ export async function syncProducts(shop, admin) {
 
     // 5. Enviar a Quotiza
     console.log('Sending to Quotiza with config:', {
-      accountId: config.accountId,
-      apiKeyLength: config.apiKey.length
+      accountId: accountId,
+      apiKeyLength: apiKey.length
     });
     const { job_id } = await sendToQuotizaAPI(quotizaProducts, config);
     console.log('Quotiza Response:', { job_id });

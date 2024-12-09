@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const ConfigContext = createContext({
   importFrequency: "manual",
@@ -7,11 +7,9 @@ const ConfigContext = createContext({
   setShop: () => {}
 });
 
-export function ConfigProvider({ children, initialShop }) {
-  const [importFrequency, setImportFrequency] = useState("manual");
+export function ConfigProvider({ children, initialShop, initialImportFrequency }) {
+  const [importFrequency, setImportFrequency] = useState(initialImportFrequency);
   const [shop, setShop] = useState(initialShop);
-
-  console.log("ConfigProvider:", { shop, importFrequency });
 
   const value = {
     importFrequency,
@@ -32,5 +30,6 @@ export function useConfig() {
   if (!context) {
     throw new Error("useConfig must be used within a ConfigProvider");
   }
+  
   return context;
 } 

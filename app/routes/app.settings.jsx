@@ -36,7 +36,7 @@ export const loader = async ({ request }) => {
   }
 
   const config = await prisma.configuration.findUnique({
-    where: { id: "current" }
+    where: { shop: session.shop }
   });
 
   return json({ 
@@ -48,10 +48,11 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
 
   const config = {
+    shop: session.shop,
     apiKey: formData.get("apiKey"),
     accountId: formData.get("accountId"),
     importFrequency: formData.get("importFrequency")
@@ -59,9 +60,9 @@ export const action = async ({ request }) => {
 
   try {
     await prisma.configuration.upsert({
-      where: { id: "current" },
+      where: { shop: session.shop },
       update: config,
-      create: { id: "current", ...config }
+      create: config
     });
 
     return json({ status: "success" });
@@ -75,8 +76,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const { shop, config } = useLoaderData();
   console.log("Settings render:", { shop, config });
-  const [apiKey, setApiKey] = useState(config?.apiKey || "");
-  const [accountId, setAccountId] = useState(config?.accountId || "");
+  const [apiKey, setApiKey] = useState(() => config?.apiKey || "");
+  const [accountId, setAccountId] = useState(() => config?.accountId || "");
   const { importFrequency, setImportFrequency } = useConfig();
 
   useEffect(() => {
@@ -123,6 +124,24 @@ export default function Settings() {
                     </Text>
                   </BlockStack>
                 </Box>
+                {config?.accountId && (
+                  <Box padding="400" borderBlockStartWidth="025" borderColor="border">
+                    <InlineStack align="space-between">
+                      <BlockStack gap="200">
+                        <Text variant="headingMd" as="h3">Quotiza Dashboard</Text>
+                        <Text variant="bodyMd" color="subdued">
+                          Access your Quotiza account directly
+                        </Text>
+                      </BlockStack>
+                      <Button
+                        external
+                        url={`https://app.quotiza.com/accounts/${config.accountId}`}
+                      >
+                        Open Quotiza Dashboard
+                      </Button>
+                    </InlineStack>
+                  </Box>
+                )}
                 <Box padding="400">
                   <Form method="post">
                     <FormLayout>
