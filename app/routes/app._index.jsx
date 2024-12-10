@@ -30,15 +30,22 @@ const prisma = new PrismaClient();
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
+  const url = new URL(request.url);
+  const page = parseInt(url.searchParams.get("page")) || 1;
+  const pageSize = 10;
 
   if (!session?.shop) {
     throw redirect("/auth/login");
   }
 
+  // Obtener el total de registros
+  const total = await prisma.syncHistory.count();
+  
   // Obtener historial de sincronización
   const syncHistory = await prisma.syncHistory.findMany({
     orderBy: { date: 'desc' },
-    take: 10
+    take: pageSize,
+    skip: (page - 1) * pageSize
   });
 
   // Obtener la configuración actual
@@ -50,7 +57,13 @@ export const loader = async ({ request }) => {
     shop: session.shop,
     syncHistory,
     importFrequency: config?.importFrequency || "manual",
-    config
+    config,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(total / pageSize),
+      hasNextPage: page * pageSize < total,
+      hasPreviousPage: page > 1
+    }
   });
 };
 
@@ -64,7 +77,7 @@ export const action = async ({ request }) => {
 export default function Index() {
   const { importFrequency, setImportFrequency } = useConfig();
   const shop = useShop();
-  const { syncHistory, importFrequency: initialImportFrequency, config } = useLoaderData();
+  const { syncHistory, importFrequency: initialImportFrequency, config, pagination } = useLoaderData();
   const navigation = useNavigation();
   const isAutoSyncEnabled = ["hourly", "daily"].includes(importFrequency);
   const isSyncing = navigation.state === "submitting";
@@ -226,6 +239,27 @@ export default function Index() {
                         )
                       ])}
                     />
+                    <Box paddingBlockStart="400">
+                      <InlineStack align="center" gap="300">
+                        <Button
+                          onClick={() => navigate(`?page=${pagination.currentPage - 1}`)}
+                          disabled={!pagination.hasPreviousPage}
+                          size="slim"
+                        >
+                          Previous
+                        </Button>
+                        <Text>
+                          Page {pagination.currentPage} of {pagination.totalPages}
+                        </Text>
+                        <Button
+                          onClick={() => navigate(`?page=${pagination.currentPage + 1}`)}
+                          disabled={!pagination.hasNextPage}
+                          size="slim"
+                        >
+                          Next
+                        </Button>
+                      </InlineStack>
+                    </Box>
                   </BlockStack>
                 </Box>
               </Card>
