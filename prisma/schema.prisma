@@ -46,6 +46,8 @@ model Configuration {
   apiKey         String
   accountId      String
   importFrequency String  @default("manual")
+  priceAdjustment String  @default("price_decrease")
+  percentage     String   @default("0")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

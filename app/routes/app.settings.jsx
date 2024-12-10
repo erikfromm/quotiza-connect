@@ -12,7 +12,8 @@ import {
   BlockStack,
   Box,
   InlineStack,
-  Banner
+  Banner,
+  LegacyStack
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useNavigate, useLoaderData, useActionData, useNavigation, Form } from "@remix-run/react";
@@ -56,7 +57,9 @@ export const action = async ({ request }) => {
     shop: session.shop,
     apiKey: formData.get("apiKey"),
     accountId: formData.get("accountId"),
-    importFrequency: formData.get("importFrequency")
+    importFrequency: formData.get("importFrequency"),
+    priceAdjustment: formData.get("priceAdjustment"),
+    percentage: formData.get("percentage")
   };
 
   try {
@@ -96,6 +99,10 @@ export default function Settings() {
   const bannerTitle = actionData?.status === "success" ? "Settings saved" : "Error saving settings";
   const bannerStatus = actionData?.status === "success" ? "success" : "critical";
 
+  // New state for overall adjustment
+  const [priceAdjustment, setPriceAdjustment] = useState(() => config?.priceAdjustment || "price_decrease");
+  const [percentage, setPercentage] = useState(() => config?.percentage || "");
+
   return (
     <Page
       backAction={{
@@ -120,66 +127,124 @@ export default function Settings() {
               <BlockStack gap="400">
                 <Box padding="400">
                   <BlockStack gap="200">
-                    <Text variant="headingMd" as="h2">Quotiza Settings</Text>
+                    <Text variant="headingMd" as="h2">Connection Settings</Text>
                     <Text variant="bodyMd" color="subdued">
-                      Set up your connection details and customize your sync preferences.
+                      Your Quotiza API credentials
                     </Text>
                   </BlockStack>
                 </Box>
                 <Box padding="400">
-                  <Form method="post">
-                    <FormLayout>
-                      <TextField
-                        label="API Key"
-                        name="apiKey"
-                        value={apiKey}
-                        onChange={setApiKey}
-                        autoComplete="off"
-                        type={showApiKey ? "text" : "password"}
-                        helpText="Find this in your Quotiza dashboard settings"
-                        suffix={
-                          <Button
-                            variant="plain"
-                            icon={showApiKey ? HideIcon : ViewIcon}
-                            onClick={() => setShowApiKey(!showApiKey)}
-                          />
-                        }
-                      />
-                      <TextField
-                        label="Account ID"
-                        name="accountId"
-                        value={accountId}
-                        onChange={setAccountId}
-                        autoComplete="off"
-                        helpText="Your Quotiza account identifier"
-                      />
-                      <Select
-                        label="Import Frequency"
-                        name="importFrequency"
-                        options={[
-                          {label: "Every hour", value: "hourly"},
-                          {label: "Once a day", value: "daily"},
-                          {label: "Manual only", value: "manual"}
-                        ]}
-                        value={importFrequency}
-                        onChange={setImportFrequency}
-                        helpText="How often should products be synchronized"
-                      />
-                      <Box paddingBlockStart="400">
-                        <Button 
-                          primary 
-                          submit
-                          loading={isSaving}
-                          fullWidth
-                        >
-                          Save Settings
-                        </Button>
-                      </Box>
-                    </FormLayout>
-                  </Form>
+                  <FormLayout>
+                    <TextField
+                      label="API Key"
+                      name="apiKey"
+                      value={apiKey}
+                      onChange={setApiKey}
+                      autoComplete="off"
+                      type={showApiKey ? "text" : "password"}
+                      helpText="Find this in your Quotiza dashboard settings"
+                      suffix={
+                        <Button
+                          variant="plain"
+                          icon={showApiKey ? HideIcon : ViewIcon}
+                          onClick={() => setShowApiKey(!showApiKey)}
+                        />
+                      }
+                    />
+                    <TextField
+                      label="Account ID"
+                      name="accountId"
+                      value={accountId}
+                      onChange={setAccountId}
+                      autoComplete="off"
+                      helpText="Your Quotiza account identifier"
+                    />
+                  </FormLayout>
                 </Box>
               </BlockStack>
             </Card>
+
+            <Box paddingBlockStart="400">
+              <Card>
+                <BlockStack gap="400">
+                  <Box padding="400">
+                    <BlockStack gap="200">
+                      <Text variant="headingMd" as="h2">Sync Settings</Text>
+                      <Text variant="bodyMd" color="subdued">
+                        Configure how your products sync with Quotiza
+                      </Text>
+                    </BlockStack>
+                  </Box>
+                  <Box padding="400">
+                    <Form method="post">
+                      <FormLayout>
+                        <Select
+                          label="Import Frequency"
+                          name="importFrequency"
+                          options={[
+                            {label: "Every hour", value: "hourly"},
+                            {label: "Once a day", value: "daily"},
+                            {label: "Manual only", value: "manual"}
+                          ]}
+                          value={importFrequency}
+                          onChange={setImportFrequency}
+                          helpText="How often should products be synchronized"
+                        />
+                        
+                        <FormLayout.Group condensed>
+                          <Box minWidth="200px">
+                            <Select
+                              label="Overall adjustment"
+                              options={[
+                                { label: "Price decrease", value: "price_decrease" },
+                                { label: "Price increase", value: "price_increase" }
+                              ]}
+                              value={priceAdjustment}
+                              onChange={setPriceAdjustment}
+                            />
+                          </Box>
+                          <Box minWidth="100px" maxWidth="100px">
+                            <div style={{ height: '24px' }}></div>
+                            <TextField
+                              label=""
+                              labelHidden
+                              value={percentage}
+                              onChange={(value) => {
+                                const numericValue = value.replace(/[^0-9]/g, '');
+                                if (numericValue <= 100) {
+                                  setPercentage(numericValue);
+                                }
+                              }}
+                              type="text"
+                              prefix={priceAdjustment === "price_decrease" ? "-" : "+"}
+                              suffix="%"
+                              placeholder="0"
+                              align="right"
+                              autoComplete="off"
+                            />
+                          </Box>
+                        </FormLayout.Group>
+
+                        <input type="hidden" name="priceAdjustment" value={priceAdjustment} />
+                        <input type="hidden" name="percentage" value={percentage} />
+                      </FormLayout>
+                    </Form>
+                  </Box>
+                </BlockStack>
+              </Card>
+            </Box>
+
+            <Box paddingBlockStart="400">
+              <Button 
+                primary
+                submit
+                loading={isSaving}
+                fullWidth
+                tone="success"
+              >
+                Save Settings
+              </Button>
+            </Box>
           </Layout.Section>
 
           <Layout.Section variant="oneThird">

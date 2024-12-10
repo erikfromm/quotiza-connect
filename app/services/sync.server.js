@@ -65,17 +65,38 @@ export async function syncProducts(shop, admin) {
     console.log('Shopify Products:', JSON.stringify(shopifyProducts, null, 2));
 
     // 4. Transformar productos
-    const quotizaProducts = shopifyProducts.map(product => ({
-      name: product.title,
-      description: product.descriptionHtml?.replace(/<[^>]*>/g, ''),
-      brand: product.vendor || "Default Brand",
-      category: product.productCategory?.productTaxonomyNode?.name || "Default Category",
-      active: product.status === 'ACTIVE',
-      sku: product.variants.edges[0]?.node.sku,
-      base_price: parseFloat(product.variants.edges[0]?.node.price),
-      upc: product.variants.edges[0]?.node.barcode,
-      image_url: product.images.edges[0]?.node.url
-    }));
+    const quotizaProducts = shopifyProducts.map(product => {
+      const basePrice = parseFloat(product.variants.edges[0]?.node.price);
+      let adjustedPrice = basePrice;
+      
+      if (config.percentage && 
+          config.percentage !== "0" && 
+          !isNaN(parseFloat(config.percentage))) {
+        try {
+          const percentageValue = parseFloat(config.percentage);
+          if (config.priceAdjustment === "price_increase") {
+            adjustedPrice = basePrice * (1 + percentageValue / 100);
+          } else {
+            adjustedPrice = basePrice * (1 - percentageValue / 100);
+          }
+        } catch (error) {
+          console.warn("Error adjusting price, using base price:", error);
+          adjustedPrice = basePrice;
+        }
+      }
+
+      return {
+        name: product.title,
+        description: product.descriptionHtml?.replace(/<[^>]*>/g, ''),
+        brand: product.vendor || "Default Brand",
+        category: product.productCategory?.productTaxonomyNode?.name || "Default Category",
+        active: product.status === 'ACTIVE',
+        sku: product.variants.edges[0]?.node.sku,
+        base_price: adjustedPrice,
+        upc: product.variants.edges[0]?.node.barcode,
+        image_url: product.images.edges[0]?.node.url
+      };
+    });
     console.log('Transformed Products for Quotiza:', JSON.stringify(quotizaProducts, null, 2));
 
     // 5. Enviar a Quotiza
