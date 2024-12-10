@@ -76,6 +76,7 @@ export default function Index() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const navigate = useNavigate();
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
+  const [showWelcome, setShowWelcome] = useState(true);
 
   // Actualizar el estado del contexto con el valor de la base de datos
   useEffect(() => {
@@ -134,28 +135,30 @@ export default function Index() {
         <Layout>
           <Layout.Section>
             <BlockStack gap="500">
-              {/* Welcome Callout */}
-              <CalloutCard
-                title="Welcome to Quotiza Connect"
-                illustration="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                primaryAction={{
-                  content: 'Go to Settings',
-                  onAction: () => navigate("/app/settings"),
-                }}
-              >
-                <BlockStack gap="400">
-                  <Text variant="bodyMd" as="p">
-                    This app helps you synchronize your Shopify products with Quotiza.
-                  </Text>
-                  
-                  <BlockStack gap="200">
-                    <Text variant="bodyMd" as="p">Follow these steps to get started:</Text>
-                    <Text variant="bodyMd" as="p">1. Go to Settings in the navigation menu</Text>
-                    <Text variant="bodyMd" as="p">2. Enter your Quotiza API Key and Account ID</Text>
-                    <Text variant="bodyMd" as="p">3. Enable synchronization and choose your preferred frequency</Text>
+              {showWelcome && (
+                <CalloutCard
+                  title="Welcome to Quotiza Connect"
+                  illustration="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                  primaryAction={{
+                    content: 'Go to Settings',
+                    onAction: () => navigate("/app/settings"),
+                  }}
+                  onDismiss={() => setShowWelcome(false)}
+                >
+                  <BlockStack gap="400">
+                    <Text variant="bodyMd" as="p">
+                      Easily sync your Shopify products with Quotiza for smooth, hassle-free operations.
+                    </Text>
+                    
+                    <BlockStack gap="200">
+                      <Text variant="bodyMd" as="p">Getting Started Made Simple:</Text>
+                      <Text variant="bodyMd" as="p">1. Go to Settings in the menu.</Text>
+                      <Text variant="bodyMd" as="p">2. Enter your Quotiza API Key and Account ID.</Text>
+                      <Text variant="bodyMd" as="p">3. Choose your preferred sync method and frequency to keep your products updated effortlessly.</Text>
+                    </BlockStack>
                   </BlockStack>
-                </BlockStack>
-              </CalloutCard>
+                </CalloutCard>
+              )}
 
               {/* Sync Toggle Card */}
               <Card>
@@ -173,7 +176,12 @@ export default function Index() {
                         </Badge>
                       </InlineStack>
                       <Text variant="bodyMd" color="subdued">
-                        Enable or disable synchronization with Quotiza
+                        {importFrequency === 'manual' 
+                          ? "Products will only be imported into your Quotiza account manually by clicking the \"Sync Now\" button."
+                          : importFrequency === 'daily'
+                            ? "Auto-sync is enabled. Products will be automatically imported into your Quotiza account once every day."
+                            : "Auto-sync is enabled. Products will be automatically imported into your Quotiza account every hour."
+                        }
                       </Text>
                     </BlockStack>
                     <Button 

@@ -8,7 +8,10 @@ import { ConfigProvider } from "../contexts/ConfigContext";
 import { ShopProvider } from "../contexts/ShopContext";
 import prisma from "../db.server";
 
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+export const links = () => [
+  { rel: "stylesheet", href: polarisStyles },
+  { rel: "icon", type: "image/png", href: "/icons/app-icon.png" }
+];
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);

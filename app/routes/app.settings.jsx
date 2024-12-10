@@ -120,28 +120,10 @@ export default function Settings() {
                   <BlockStack gap="200">
                     <Text variant="headingMd" as="h2">Quotiza Settings</Text>
                     <Text variant="bodyMd" color="subdued">
-                      Configure your connection details and sync preferences
+                      Set up your connection details and customize your sync preferences.
                     </Text>
                   </BlockStack>
                 </Box>
-                {config?.accountId && (
-                  <Box padding="400" borderBlockStartWidth="025" borderColor="border">
-                    <InlineStack align="space-between">
-                      <BlockStack gap="200">
-                        <Text variant="headingMd" as="h3">Quotiza Dashboard</Text>
-                        <Text variant="bodyMd" color="subdued">
-                          Access your Quotiza account directly
-                        </Text>
-                      </BlockStack>
-                      <Button
-                        external
-                        url={`https://app.quotiza.com/accounts/${config.accountId}`}
-                      >
-                        Open Quotiza Dashboard
-                      </Button>
-                    </InlineStack>
-                  </Box>
-                )}
                 <Box padding="400">
                   <Form method="post">
                     <FormLayout>
@@ -192,25 +174,6 @@ export default function Settings() {
 
           <Layout.Section variant="oneThird">
             <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="400">
-                  <Box padding="400">
-                    <BlockStack gap="200">
-                      <Text variant="headingMd" as="h2">Connection Status</Text>
-                      <Banner 
-                        status={config?.apiKey ? "success" : "warning"}
-                        title={config?.apiKey ? "Connected to Quotiza" : "Not Configured"}
-                      >
-                        {config?.apiKey 
-                          ? "Your connection is active and working properly"
-                          : "Please configure your API Key and Account ID to connect with Quotiza"
-                        }
-                      </Banner>
-                    </BlockStack>
-                  </Box>
-                </BlockStack>
-              </Card>
-
               <Card>
                 <BlockStack gap="400">
                   <Box padding="400">
