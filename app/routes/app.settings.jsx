@@ -20,6 +20,7 @@ import { json, redirect } from "@remix-run/node";
 import { useConfig } from "../contexts/ConfigContext";
 import { useShop } from "../contexts/ShopContext";
 import prisma from "../db.server";
+import { ViewIcon, HideIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
@@ -78,6 +79,7 @@ export default function Settings() {
   console.log("Settings render:", { shop, config });
   const [apiKey, setApiKey] = useState(() => config?.apiKey || "");
   const [accountId, setAccountId] = useState(() => config?.accountId || "");
+  const [showApiKey, setShowApiKey] = useState(false);
   const { importFrequency, setImportFrequency } = useConfig();
 
   useEffect(() => {
@@ -133,7 +135,15 @@ export default function Settings() {
                         value={apiKey}
                         onChange={setApiKey}
                         autoComplete="off"
+                        type={showApiKey ? "text" : "password"}
                         helpText="Find this in your Quotiza dashboard settings"
+                        suffix={
+                          <Button
+                            variant="plain"
+                            icon={showApiKey ? HideIcon : ViewIcon}
+                            onClick={() => setShowApiKey(!showApiKey)}
+                          />
+                        }
                       />
                       <TextField
                         label="Account ID"
